@@ -1,19 +1,36 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- task: Npm@1
+  inputs:
+    command: 'custom'
+    customCommand: 'install -g newman'
+  displayName: 'Install Newman'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- task: Npm@1
+  inputs:
+    command: 'custom'
+    customCommand: 'install -g newman-reporter-htmlextra'
+  displayName: 'Install Newman Reporter HTML Extra'
+
+- task: CmdLine@2
+  inputs:
+    script: 'newman run Collection/reqres.in_tests.postman_collection.json -e Collection/reqres.postman_environment.json -r cli,html,junit --reporter-junit-export junitReport.xml --reporter-htmlextra-export TestReport.html'
+  displayName: 'Run Postman Collection'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    artifactName: 'NewmanHTMLReport'
+    targetPath: '$(System.DefaultWorkingDirectory)/TestReport.html'
+  displayName: 'Publish HTML Report'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'junitReport.xml'
+  displayName: 'Publish Test Results'
+
